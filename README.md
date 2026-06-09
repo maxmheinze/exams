@@ -1,5 +1,7 @@
 # exams
 
+_**Note:** This Readme file was written by generative AI. My reasoning was that it would be most comprehensive this way._
+
 A self-hosted web app for **generating randomized exams** from a question pool and
 **grading scanned exams** semi-automatically. Live at
 [exams.maxheinze.eu](https://exams.maxheinze.eu).
@@ -104,7 +106,14 @@ frontend/           vanilla-JS SPA (vendored libs fetched, not committed)
 docs/DEPLOY.md      production deployment guide
 ```
 
-## License
+## Deploy after changes to the repo
 
-No license is set yet. Until one is added, all rights are reserved; add a `LICENSE`
-file to choose terms (e.g. MIT) if you intend others to reuse the code.
+Deploy:
+
+```bash
+sudo /home/exams/app/deploy.sh
+```
+
+This pulls the latest commit, syncs the frontend to nginx's web root, restarts the
+service, and verifies it came back up. Hard-refresh the browser after a frontend change
+to clear the cache.
