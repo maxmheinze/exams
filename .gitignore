@@ -1,0 +1,26 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+env/
+
+# Runtime / ephemeral
+work/
+job_*/
+*.log
+
+# LaTeX build artifacts
+*.aux
+*.toc
+*.out
+*.fls
+*.fdb_latexmk
+*.synctex.gz
+
+# Vendored browser libraries (fetched via frontend/fetch-vendor.sh)
+frontend/vendor/
+
+# Bundles / OS cruft
+*.zip
+.DS_Store

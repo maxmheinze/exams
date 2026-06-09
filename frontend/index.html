@@ -1,0 +1,366 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>exams.maxheinze.eu</title>
+  <meta name="description" content="Generate randomized exams from a question pool." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<header class="top">
+  <div class="wrap">
+    <span class="brand">exams<span class="dot">.</span>maxheinze<span class="dot">.</span>eu</span>
+    <span class="brand-sub">exam generator</span>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <!-- Stepper -->
+  <div class="stepper hidden" id="stepper">
+    <div class="step" data-step="1"><span class="num">1</span> Questions</div>
+    <div class="step" data-step="2"><span class="num">2</span> Template</div>
+    <div class="step" data-step="3"><span class="num">3</span> Options</div>
+  </div>
+
+  <!-- ============ LANDING ============ -->
+  <section id="view-landing">
+    <h1>What do you want to do?</h1>
+    <p class="lead">Choose a task to get started.</p>
+    <div class="choices">
+      <button class="choice" id="choice-generate">
+        <div class="icon"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor"><path d="M15.502 1.94a.5.5 0 0 1 0 .706L14.459 3.69l-2-2L13.502.646a.5.5 0 0 1 .707 0l1.293 1.293zm-1.75 2.456-2-2L4.939 9.21a.5.5 0 0 0-.121.196l-.805 2.414a.25.25 0 0 0 .316.316l2.414-.805a.5.5 0 0 0 .196-.12l6.813-6.814z"/><path fill-rule="evenodd" d="M1 13.5A1.5 1.5 0 0 0 2.5 15h11a1.5 1.5 0 0 0 1.5-1.5v-6a.5.5 0 0 0-1 0v6a.5.5 0 0 1-.5.5h-11a.5.5 0 0 1-.5-.5v-11a.5.5 0 0 1 .5-.5H9a.5.5 0 0 0 0-1H2.5A1.5 1.5 0 0 0 1 2.5z"/></svg></div>
+        <h2>Generate exams</h2>
+        <p class="muted">Build randomized exam PDFs from a question pool.</p>
+      </button>
+      <button class="choice" id="choice-grade">
+        <div class="icon"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor"><path d="M3 14.5A1.5 1.5 0 0 1 1.5 13V3A1.5 1.5 0 0 1 3 1.5h8a.5.5 0 0 1 0 1H3a.5.5 0 0 0-.5.5v10a.5.5 0 0 0 .5.5h10a.5.5 0 0 0 .5-.5V8a.5.5 0 0 1 1 0v5a1.5 1.5 0 0 1-1.5 1.5z"/><path d="m8.354 10.354 7-7a.5.5 0 0 0-.708-.708L8 9.293 5.354 6.646a.5.5 0 1 0-.708.708l3 3a.5.5 0 0 0 .708 0"/></svg></div>
+        <h2>Grade exams</h2>
+        <p class="muted">Read scanned exams, enter points, and produce graded PDFs and a report.</p>
+      </button>
+    </div>
+  </section>
+
+  <!-- ============ EDITOR (step 1) ============ -->
+  <section id="view-editor" class="hidden">
+    <div id="editor-intro">
+      <div class="card">
+        <h1>Question pool</h1>
+        <p class="muted">Upload an existing pool (JSON), or start from scratch.</p>
+        <div class="row" style="margin-top:16px">
+          <label class="btn btn-primary" for="json-upload">Upload JSON pool</label>
+          <input id="json-upload" type="file" accept="application/json,.json" class="hidden" />
+          <button id="start-scratch" class="btn-ghost">Start from scratch</button>
+        </div>
+        <p class="hint">The JSON must be in the format this editor exports — a list of question
+          objects. The simplest way to get a valid file is to build a pool here and use
+          “Save JSON &amp; continue”.</p>
+      </div>
+      <div class="actions">
+        <button id="editor-intro-back" class="btn-ghost">← Back</button>
+      </div>
+    </div>
+
+    <div id="editor-body" class="hidden">
+      <div class="card">
+        <div class="row spread">
+          <div><h2>Questions by type &amp; variant</h2>
+            <p class="hint">Each type can hold several variants; one variant is drawn per type per
+              exam. Points are set per type — every variant of a type is worth the same. Each question
+              is a <strong>LaTeX snippet</strong> (just the body — no <code>\documentclass</code> or
+              <code>\begin{document}</code>). Available in the preamble are, among others,
+              <code>graphicx</code> (<code>\includegraphics</code>), <code>amsmath</code>,
+              <code>listings</code> (<code>\lstinputlisting</code>), <code>tikz</code>, and
+              <code>enumitem</code>.</p></div>
+          <button id="add-type" class="btn-ghost">+ Add question type</button>
+        </div>
+        <div id="qtypes"></div>
+      </div>
+
+      <div class="card">
+        <h2>Assets <span class="muted" style="font-weight:400">(optional)</span></h2>
+        <p class="hint">Files your questions reference by name — images for <code>\includegraphics</code>,
+          or <code>.txt</code> for <code>\lstinputlisting</code> (e.g. R output). They are sent with the
+          exam request and discarded afterwards.</p>
+        <div class="row" style="margin-top:10px">
+          <label class="btn" for="asset-input">Add files</label>
+          <input id="asset-input" type="file" multiple class="hidden" />
+        </div>
+        <ul class="assetlist" id="assetlist"></ul>
+      </div>
+
+      <div class="actions">
+        <button id="editor-back" class="btn-ghost">← Back</button>
+        <button id="editor-continue" class="btn-primary">Save JSON &amp; continue →</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ TEMPLATE (step 2) ============ -->
+  <section id="view-template" class="hidden">
+    <div class="card">
+      <h1>Exam template</h1>
+      <p class="muted">Customize the cover page. Everything else in the template stays fixed.</p>
+
+      <div class="field" style="margin-top:18px">
+        <label for="f_language">Exam language</label>
+        <select id="f_language">
+          <option value="en">English</option>
+          <option value="de">Deutsch (German)</option>
+        </select>
+        <p class="hint">Sets the fixed wording in the template — page headers (“Exam”/“Question”/“Points”), “Exam No.”, the extra-page label, and the do-not-write notice. The fields you fill in below are used exactly as written.</p>
+      </div>
+
+      <div class="grid2" style="margin-top:18px">
+        <div class="field">
+          <label for="f_title">Exam title</label>
+          <input id="f_title" type="text" />
+        </div>
+        <div class="field">
+          <label for="f_date">Date</label>
+          <input id="f_date" type="text" />
+          <p class="hint">Tip: enter <strong>Mock Exam</strong> here instead of a date for a mock exam.</p>
+        </div>
+        <div class="field">
+          <label for="f_subject">Subject</label>
+          <input id="f_subject" type="text" />
+        </div>
+        <div class="field">
+          <label for="f_course">Course number line</label>
+          <input id="f_course" type="text" />
+          <p class="hint">Leave empty to omit this line entirely.</p>
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="f_rules">Rules block (LaTeX)</label>
+        <textarea id="f_rules" class="tex" style="min-height:260px"></textarea>
+        <p class="hint">Full LaTeX source for the “Please be aware of the following rules…” block, including the itemize list.</p>
+      </div>
+    </div>
+    <div class="actions">
+      <button id="template-back" class="btn-ghost">← Back</button>
+      <button id="template-continue" class="btn-primary">Continue →</button>
+    </div>
+  </section>
+
+  <!-- ============ OPTIONS (step 3) ============ -->
+  <section id="view-options" class="hidden">
+    <div class="card">
+      <h1>Generation options</h1>
+
+      <div class="grid2" style="margin-top:18px">
+        <div class="field">
+          <label for="o_n">Number of exams</label>
+          <input id="o_n" type="number" min="1" max="200" step="1" value="1" />
+        </div>
+        <div class="field">
+          <label for="o_extra">Extra (blank) pages per exam</label>
+          <select id="o_extra">
+            <option>0</option><option>2</option><option>4</option><option>6</option><option>8</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="opt">
+        <input id="o_demo" type="checkbox" />
+        <div class="opt-text"><label for="o_demo">Demo mode</label>
+          <small>Print all questions in sorted order (by question type, then within-type id), ignoring the type selection below.</small></div>
+      </div>
+      <div class="opt">
+        <input id="o_fixed" type="checkbox" />
+        <div class="opt-text"><label for="o_fixed">Fixed mode</label>
+          <small>Select one set of questions once and reuse it for all exams (order is still randomized per exam).</small></div>
+      </div>
+
+      <h2 style="margin-top:22px">Question types</h2>
+      <p class="hint">Tick the types to include; mark any as <strong>Bonus</strong> (placed last, printed as “Bonus”).</p>
+      <div class="qtable" id="qtable" style="margin-top:10px"></div>
+
+      <div id="gen-status" class="status hidden">
+        <span class="spinner"></span>
+        <span>Generating exams… this can take a few minutes. The ZIP will download automatically.</span>
+      </div>
+      <div id="gen-error" class="error hidden"></div>
+    </div>
+
+    <div class="actions">
+      <button id="options-back" class="btn-ghost">← Back</button>
+      <button id="btn-generate" class="btn-primary">Generate exams</button>
+    </div>
+  </section>
+
+  <!-- Grading stepper -->
+  <div class="stepper hidden" id="g-stepper">
+    <div class="step" data-gstep="1"><span class="num">1</span> Read &amp; sort</div>
+    <div class="step" data-gstep="2"><span class="num">2</span> Grade</div>
+    <div class="step" data-gstep="3"><span class="num">3</span> Graded PDFs</div>
+  </div>
+
+  <!-- ============ GRADE STEP 1 — READ & SORT ============ -->
+  <section id="view-g-step1" class="hidden">
+    <div class="card">
+      <h1>Read &amp; sort scanned exams</h1>
+      <p class="muted">Upload the scanned exam PDF(s). Multiple files are merged automatically.
+        Pages are sorted by question, and a page list is produced for grading.</p>
+      <div class="row" style="margin-top:16px">
+        <label class="btn btn-primary" for="g-pdf-input">Choose scanned PDF(s)</label>
+        <input id="g-pdf-input" type="file" accept="application/pdf,.pdf" multiple class="hidden" />
+        <button id="g-read-btn" class="btn-primary hidden">Read &amp; sort</button>
+      </div>
+      <ul class="assetlist" id="g-pdf-list"></ul>
+      <p class="hint">Limit: up to ~250&nbsp;MB total and ~2500 pages across all files.
+        Already have <code>sorted.pdf</code> and <code>pagelist.csv</code>? Use the buttons below to
+        jump straight to grading or to producing graded PDFs.</p>
+
+      <div id="g-read-progress" class="hidden" style="margin-top:18px">
+        <div class="progress"><div class="bar" id="g-bar"></div></div>
+        <p class="hint" id="g-read-status">Reading…</p>
+      </div>
+      <div id="g-read-result" class="hidden" style="margin-top:18px"></div>
+      <div id="g-read-error" class="error hidden"></div>
+    </div>
+    <div class="actions">
+      <button id="g-skip-grade" class="btn-ghost">Skip to grading</button>
+      <button id="g-skip-split" class="btn-ghost">Skip to graded PDFs</button>
+      <button id="g-step1-back" class="btn-ghost">← Back</button>
+      <button id="g-to-grading" class="btn-primary hidden">Save &amp; continue →</button>
+    </div>
+  </section>
+
+  <!-- ============ GRADE STEP 2 — ENTRY (direct) ============ -->
+  <section id="view-g-grade-entry" class="hidden">
+    <div class="card">
+      <h1>Grade — load files</h1>
+      <p class="muted">Provide the sorted PDF and the page list produced by step&nbsp;1.</p>
+      <div class="field" style="margin-top:16px">
+        <label>Sorted PDF</label>
+        <input id="ge-pdf" type="file" accept="application/pdf,.pdf" />
+      </div>
+      <div class="field">
+        <label>Page list (pagelist.csv)</label>
+        <input id="ge-csv" type="file" accept=".csv,text/csv" />
+      </div>
+      <div id="ge-error" class="error hidden"></div>
+    </div>
+    <div class="actions">
+      <button id="ge-back" class="btn-ghost">← Back</button>
+      <button id="ge-start" class="btn-primary">Start grading →</button>
+    </div>
+  </section>
+
+  <!-- ============ GRADE STEP 2 — GRADING SCREEN ============ -->
+  <section id="view-g-grade" class="hidden">
+    <div class="card">
+      <div class="row spread">
+        <h2 id="g-qcount">Question 1 of 1</h2>
+        <span class="muted" id="g-qmeta"></span>
+      </div>
+      <div class="grade-grid">
+        <div class="preview" id="g-preview" title="Click to expand both pages">
+          <canvas id="g-canvas"></canvas>
+          <span class="expand-hint">click to expand</span>
+        </div>
+        <div class="entry">
+          <div class="control-numbers" id="g-controls"></div>
+          <label for="g-points" class="muted">Points</label>
+          <input id="g-points" class="points-input" type="number" step="0.5" inputmode="decimal" />
+          <div class="row" style="margin-top:14px">
+            <button id="g-prev" class="btn-ghost">← Previous</button>
+            <button id="g-next" class="btn-primary">Next →</button>
+          </div>
+          <p class="hint">Press <strong>Enter</strong> to save and advance.</p>
+        </div>
+      </div>
+    </div>
+    <div class="actions">
+      <button id="g-grade-back" class="btn-ghost">← Back to start</button>
+      <button id="g-finish" class="btn-ghost">Review entries →</button>
+    </div>
+
+    <!-- expand overlay -->
+    <div id="g-overlay" class="overlay hidden">
+      <div class="overlay-inner">
+        <button id="g-overlay-close" class="btn-ghost overlay-close">Close ✕</button>
+        <canvas id="g-canvas-1"></canvas>
+        <canvas id="g-canvas-2"></canvas>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ GRADE STEP 2 — REVIEW ============ -->
+  <section id="view-g-review" class="hidden">
+    <div class="card">
+      <h1>Review &amp; save</h1>
+      <p class="muted">Check the entered points. Click a row to jump back and edit it.
+        When ready, confirm to build the CSVs and the results report.</p>
+      <div id="g-review-warn" class="hint"></div>
+      <div class="review-table" id="g-review-table"></div>
+      <div id="g-report-status" class="status hidden">
+        <span class="spinner"></span><span>Building report PDF… this can take a few seconds.</span>
+      </div>
+      <div id="g-report-error" class="error hidden"></div>
+    </div>
+    <div class="actions">
+      <button id="g-review-back" class="btn-ghost">← Back to grading</button>
+      <button id="g-confirm" class="btn-primary">Confirm &amp; save →</button>
+    </div>
+  </section>
+
+  <!-- ============ GRADE STEP 3 — GRADED PDFs ============ -->
+  <section id="view-g-split" class="hidden">
+    <div class="card">
+      <h1>Individual graded PDFs</h1>
+      <p class="muted">Split the sorted PDF into one PDF per exam and download them as a ZIP.
+        This runs entirely in your browser.</p>
+
+      <div id="g-split-upload" class="hidden">
+        <div class="field" style="margin-top:16px">
+          <label>Sorted PDF</label>
+          <input id="gs-pdf" type="file" accept="application/pdf,.pdf" />
+        </div>
+        <div class="field">
+          <label>Page list (pagelist.csv)</label>
+          <input id="gs-csv" type="file" accept=".csv,text/csv" />
+        </div>
+      </div>
+
+      <div id="g-split-progress" class="hidden" style="margin-top:18px">
+        <div class="progress"><div class="bar" id="g-split-bar"></div></div>
+        <p class="hint" id="g-split-status">Splitting…</p>
+      </div>
+      <div id="g-split-error" class="error hidden"></div>
+    </div>
+    <div class="actions">
+      <button id="g-split-back" class="btn-ghost">← Back</button>
+      <button id="g-split-go" class="btn-primary">Create graded PDFs →</button>
+    </div>
+  </section>
+
+  <!-- ============ GRADE — DONE ============ -->
+  <section id="view-g-done" class="hidden">
+    <div class="card" style="text-align:center">
+      <h1>All done</h1>
+      <p class="muted">Your downloads have been triggered. Nothing is kept on the server.</p>
+      <div class="actions" style="justify-content:center;margin-top:18px">
+        <button id="g-done-home" class="btn-primary">Back to start</button>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<script src="vendor/pdf.min.js"></script>
+<script src="vendor/pdf-lib.min.js"></script>
+<script src="vendor/jszip.min.js"></script>
+<script src="app.js"></script>
+<footer class="site-footer">
+  <div class="wrap">Max Heinze&nbsp; ·&nbsp; Welthandelsplatz 1&nbsp; ·&nbsp; 1020 Vienna&nbsp; ·&nbsp; <a href="mailto:hi@maxheinze.eu">hi@maxheinze.eu</a></div>
+</footer>
+</body>
+</html>

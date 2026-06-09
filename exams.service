@@ -1,0 +1,37 @@
+[Unit]
+Description=exams.maxheinze.eu exam generator (FastAPI/uvicorn)
+After=network.target
+
+[Service]
+Type=simple
+User=exams
+Group=exams
+WorkingDirectory=/home/exams/app
+Environment=EXAMS_WORK_ROOT=/home/exams/work
+ExecStart=/home/exams/venv/bin/uvicorn app:app --host 127.0.0.1 --port 8003
+Restart=on-failure
+RestartSec=2
+
+# --- RAM backstop on the shared 4 GB box ---------------------------------
+# Per-compile RLIMIT_AS (1.5 GiB, set in examgen/security.py) trips before this,
+# so a heavy compile fails as a single-job error instead of OOM-killing uvicorn.
+MemoryMax=1800M
+
+# --- Sandboxing ----------------------------------------------------------
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=/home/exams/work
+ProtectControlGroups=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+RestrictSUIDSGID=true
+LockPersonality=true
+ProtectClock=true
+# Loopback only: nginx <-> uvicorn works; the service cannot reach the network.
+IPAddressDeny=any
+IPAddressAllow=localhost
+
+[Install]
+WantedBy=multi-user.target

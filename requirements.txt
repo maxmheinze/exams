@@ -1,0 +1,12 @@
+# Python dependencies for the backend (install into a venv).
+# System packages are listed in README.md (texlive, poppler-utils, libdmtx, zint, ...).
+fastapi
+uvicorn[standard]
+pikepdf
+pylibdmtx
+Pillow
+matplotlib
+numpy
+# Python 3.12 removed distutils from the stdlib; pylibdmtx still imports it,
+# so setuptools (which ships a compatibility shim) must be present.
+setuptools
