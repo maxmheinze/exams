@@ -73,10 +73,12 @@ def _hist(values, title, path):
     import matplotlib.pyplot as plt
     a = np.asarray(values, float)
     hi = a.max() if a.size else 1.0
-    edges = np.arange(-0.25, hi + 1.0, 0.5)
+    edges = np.arange(-0.25, hi + 0.5, 0.5)
+    if edges.size < 2:
+        edges = np.array([-0.25, 0.25])
     fig, ax = plt.subplots(figsize=(7.2, 4.0))
     ax.hist(a, bins=edges, color="#4682b4", edgecolor="black", alpha=0.75)
-    ax.set_xlim(left=-0.25)
+    ax.set_xlim(edges[0], edges[-1])
     ax.set_title(title, fontweight="bold")
     ax.set_xlabel("Points"); ax.set_ylabel("Frequency")
     ax.spines[["top", "right"]].set_visible(False)

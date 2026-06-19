@@ -8,16 +8,16 @@
    ============================================================ */
 
 const DEFAULT_FIELDS = {
-  exam_title: "Midterm Exam",
-  subject: "Econometrics III / Applied Econometrics",
-  course_no: "(Courses No. 4352 and 5913)",
+  exam_title: "Exam",
+  subject: "Course Title",
+  course_no: "(Course No. 0000)",
   date: "May 21, 2026",
   rules_latex: String.raw`Please be aware of the following \textbf{rules} for this exam:
 
 \begin{itemize}
-  \item You have \textbf{100 Minutes} to answer the questions.
-  \item You can receive up to \textbf{40 points}.
-  \item There are 11 differently weighted questions in this exam. You should aim not to use more than 2 minutes per point in order to have 20 minutes to check your answers. The order of questions is randomized and they can be answered independently.
+  \item You have \textbf{0 Minutes} to answer the questions.
+  \item You can receive up to \textbf{0 points}.
+  \item There are 0 differently weighted questions in this exam. You should aim not to use more than 0 minutes per point in order to have 0 minutes to check your answers. The order of questions is randomized and they can be answered independently.
   \item Your exam is marked with an ID number on every page. \textbf{Please do neither write your name nor your student ID number anywhere on this exam}, so that we can guarantee fairness and anonymity while grading. Name and exam number are matched on a separate attendance sheet.
   \item You are only allowed to answer the questions in \textbf{English}.
   \item The following \textbf{aids} are allowed:
@@ -727,7 +727,12 @@ async function doSplit() {
     const ex = r.exam_number && r.exam_number !== "N/A" ? r.exam_number : "NA";
     (groups[ex] = groups[ex] || []).push(r);
   }
-  const numKey = (r) => [parseInt(r.question_number) || 999, parseInt(r.page_within_question) || 0];
+  const ord = (r) => [
+    r.question_type === "00" ? 0 : 1,                 // title pages first
+    parseInt(r.question_number) || 999,
+    parseInt(r.page_within_question) || 0,
+    parseInt(r.new_page_number) || 0,
+  ];
   const exams = Object.keys(groups).sort();
 
   $("#g-split-go").disabled = true;
@@ -738,7 +743,9 @@ async function doSplit() {
     for (let i = 0; i < exams.length; i++) {
       const ex = exams[i];
       const pages = groups[ex].slice().sort((a, b) => {
-        const ka = numKey(a), kb = numKey(b); return ka[0] - kb[0] || ka[1] - kb[1];
+        const ka = ord(a), kb = ord(b);
+        for (let i = 0; i < ka.length; i++) if (ka[i] !== kb[i]) return ka[i] - kb[i];
+        return 0;
       });
       const out = await PDFLib.PDFDocument.create();
       const idxs = pages.map((p) => Number(p.new_page_number) - 1);
