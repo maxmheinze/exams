@@ -258,3 +258,21 @@ a { color: var(--accent); }
 /* Type-level points control */
 .type-points { display: flex; align-items: center; gap: 10px; margin: 2px 0 14px; }
 .type-points label { color: var(--ink-soft); font-size: .85rem; }
+
+/* CodeMirror LaTeX editors */
+.CodeMirror {
+  height: auto;
+  min-height: 120px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  font-family: var(--mono);
+  font-size: 0.86rem;
+  line-height: 1.5;
+  background: var(--paper);
+}
+.CodeMirror-focused { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+.CodeMirror-scroll { min-height: 120px; }
+.variant .CodeMirror { margin-top: 2px; }
+/* the rules-block editor is taller */
+#f_rules + .CodeMirror { min-height: 240px; }
+#f_rules + .CodeMirror .CodeMirror-scroll { min-height: 240px; }

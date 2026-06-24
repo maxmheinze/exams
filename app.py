@@ -143,6 +143,14 @@ async def generate(
         )
     except (GenerationError, ValueError) as e:
         # user-fixable problems (bad LaTeX, bad asset name, bad options)
+        tex = getattr(e, "tex", None)
+        if tex is not None:
+            raise HTTPException(status_code=422, detail={
+                "message": str(e),
+                "tex": tex,
+                "log": getattr(e, "log", "") or "",
+                "jobname": getattr(e, "jobname", "exam"),
+            })
         raise HTTPException(status_code=400, detail=str(e))
 
     return Response(
@@ -272,6 +280,14 @@ async def grade_report(points: UploadFile = File(...)):
         pdf_path = await run_in_threadpool(work)
     except ReportError as e:
         shutil.rmtree(job_dir, ignore_errors=True)
+        tex = getattr(e, "tex", None)
+        if tex is not None:
+            raise HTTPException(status_code=422, detail={
+                "message": str(e).splitlines()[0],
+                "tex": tex,
+                "log": getattr(e, "log", "") or "",
+                "jobname": "report",
+            })
         raise HTTPException(status_code=400, detail=str(e).splitlines()[0])
     except Exception:
         shutil.rmtree(job_dir, ignore_errors=True)

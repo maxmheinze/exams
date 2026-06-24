@@ -240,7 +240,17 @@ def build_report(points_csv, job_dir):
     pdf = os.path.join(job_dir, "report.pdf")
     if res.returncode != 0 or not os.path.exists(pdf):
         tail = "\n".join((res.stdout or "").splitlines()[-15:])
-        raise ReportError("Report compilation failed.\n" + tail)
+        try:
+            with open(os.path.join(job_dir, "report.log"),
+                      "r", encoding="latin-1", errors="replace") as lf:
+                log_text = lf.read()
+        except OSError:
+            log_text = res.stdout or ""
+        err = ReportError("Report compilation failed.\n" + tail)
+        err.tex = tex
+        err.log = log_text
+        err.jobname = "report"
+        raise err
     return pdf
 
 

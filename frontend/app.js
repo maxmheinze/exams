@@ -8,16 +8,16 @@
    ============================================================ */
 
 const DEFAULT_FIELDS = {
-  exam_title: "Exam",
-  subject: "Course Title",
-  course_no: "(Course No. 0000)",
+  exam_title: "Midterm Exam",
+  subject: "Econometrics III / Applied Econometrics",
+  course_no: "(Courses No. 4352 and 5913)",
   date: "May 21, 2026",
   rules_latex: String.raw`Please be aware of the following \textbf{rules} for this exam:
 
 \begin{itemize}
-  \item You have \textbf{0 Minutes} to answer the questions.
-  \item You can receive up to \textbf{0 points}.
-  \item There are 0 differently weighted questions in this exam. You should aim not to use more than 0 minutes per point in order to have 0 minutes to check your answers. The order of questions is randomized and they can be answered independently.
+  \item You have \textbf{100 Minutes} to answer the questions.
+  \item You can receive up to \textbf{40 points}.
+  \item There are 11 differently weighted questions in this exam. You should aim not to use more than 2 minutes per point in order to have 20 minutes to check your answers. The order of questions is randomized and they can be answered independently.
   \item Your exam is marked with an ID number on every page. \textbf{Please do neither write your name nor your student ID number anywhere on this exam}, so that we can guarantee fairness and anonymity while grading. Name and exam number are matched on a separate attendance sheet.
   \item You are only allowed to answer the questions in \textbf{English}.
   \item The following \textbf{aids} are allowed:
@@ -118,7 +118,7 @@ function renderEditor() {
     for (const v of variants) {
       const ta = el("textarea", { className: "tex", value: v.text,
         placeholder: "LaTeX snippet — no \\documentclass or \\begin{document} needed" });
-      ta.addEventListener("input", () => { v.text = ta.value; });
+      ta._variant = v;
 
       const del = el("button", { className: "btn-danger", title: "Delete variant" }, "Delete");
       del.addEventListener("click", () => {
@@ -155,6 +155,10 @@ function renderEditor() {
       body);
     host.append(det);
   }
+  host.querySelectorAll("textarea.tex").forEach((ta) => {
+    const v = ta._variant;
+    makeEditor(ta, (val) => { if (v) v.text = val; });
+  });
 }
 
 /* ---------- assets ---------- */
@@ -197,13 +201,59 @@ function triggerDownload(blob, filename) {
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
+// Build a "Download .tex and log" button from a failed-compile error payload.
+function compileArtifactsButton(artifacts) {
+  const btn = el("button", { className: "btn-ghost", style: "margin-top:10px" },
+    "Download .tex and log");
+  btn.addEventListener("click", async () => {
+    const base = (artifacts.jobname || "compile").replace(/[^a-zA-Z0-9_-]/g, "_");
+    if (window.JSZip) {
+      const zip = new JSZip();
+      if (artifacts.tex) zip.file(base + ".tex", artifacts.tex);
+      if (artifacts.log) zip.file(base + ".log", artifacts.log);
+      triggerDownload(await zip.generateAsync({ type: "blob", compression: "STORE" }),
+        base + "_failure.zip");
+    } else {
+      if (artifacts.tex) triggerDownload(new Blob([artifacts.tex], { type: "text/plain" }), base + ".tex");
+      if (artifacts.log) triggerDownload(new Blob([artifacts.log], { type: "text/plain" }), base + ".log");
+    }
+  });
+  return btn;
+}
+
+// Turn a <textarea> into a CodeMirror LaTeX editor (falls back to the plain
+// textarea if the CodeMirror library isn't loaded).
+function makeEditor(textarea, onChange) {
+  if (!window.CodeMirror) {
+    if (onChange) textarea.addEventListener("input", () => onChange(textarea.value));
+    return { getValue: () => textarea.value, setValue: (v) => { textarea.value = v; }, refresh: () => {} };
+  }
+  const cm = CodeMirror.fromTextArea(textarea, {
+    mode: "stex",
+    lineWrapping: true,
+    viewportMargin: Infinity,
+    indentWithTabs: true,
+    tabSize: 4,
+    extraKeys: { Tab: (c) => c.replaceSelection("\t") },
+  });
+  if (onChange) cm.on("change", () => onChange(cm.getValue()));
+  return cm;
+}
+
 /* ---------- template page ---------- */
+let rulesCM = null;
 function loadTemplateFields() {
   $("#f_title").value    = state.fields.exam_title;
   $("#f_subject").value  = state.fields.subject;
   $("#f_course").value   = state.fields.course_no;
   $("#f_date").value     = state.fields.date;
   $("#f_rules").value    = state.fields.rules_latex;
+  if (!rulesCM) {
+    rulesCM = makeEditor($("#f_rules"));
+  } else {
+    rulesCM.setValue(state.fields.rules_latex);
+  }
+  if (rulesCM.refresh) setTimeout(() => rulesCM.refresh(), 0);
   $("#f_language").value = state.language;
 }
 function saveTemplateFields() {
@@ -212,7 +262,7 @@ function saveTemplateFields() {
     subject: $("#f_subject").value,
     course_no: $("#f_course").value,
     date: $("#f_date").value,
-    rules_latex: $("#f_rules").value,
+    rules_latex: rulesCM ? rulesCM.getValue() : $("#f_rules").value,
   };
   state.language = $("#f_language").value;
 }
@@ -308,9 +358,13 @@ async function generate() {
   try {
     const resp = await fetch("/api/generate", { method: "POST", body: fd });
     if (!resp.ok) {
-      let detail = `HTTP ${resp.status}`;
-      try { detail = (await resp.json()).detail || detail; } catch (_) {}
-      return fail("Generation failed.", detail);
+      let detail = `HTTP ${resp.status}`, artifacts = null;
+      try {
+        const d = (await resp.json()).detail;
+        if (d && typeof d === "object") { detail = d.message || "Compilation failed."; artifacts = d; }
+        else if (d) detail = d;
+      } catch (_) {}
+      return fail("Generation failed.", detail, artifacts);
     }
     const blob = await resp.blob();
     triggerDownload(blob, "exams.zip");
@@ -327,12 +381,13 @@ function saveOptionsFromForm() {
   state.options.demo = $("#o_demo").checked;
   state.options.fixed = $("#o_fixed").checked;
 }
-function fail(msg, detail) {
+function fail(msg, detail, artifacts) {
   const err = $("#gen-error");
   err.classList.remove("hidden");
   err.innerHTML = "";
   err.append(el("strong", {}, msg));
   if (detail) err.append(el("pre", {}, detail));
+  if (artifacts && (artifacts.tex || artifacts.log)) err.append(compileArtifactsButton(artifacts));
 }
 
 /* ---------- wire up ---------- */
@@ -689,8 +744,13 @@ async function confirmAndSave() {
     fd.append("points", new Blob([pbq], { type: "text/csv" }), "points_by_question.csv");
     const resp = await fetch("/api/grade/report", { method: "POST", body: fd });
     if (!resp.ok) {
-      let d = "HTTP " + resp.status; try { d = (await resp.json()).detail || d; } catch (e) {}
-      throw new Error(d);
+      let d = "HTTP " + resp.status, artifacts = null;
+      try {
+        const det = (await resp.json()).detail;
+        if (det && typeof det === "object") { d = det.message || "Compilation failed."; artifacts = det; }
+        else if (det) d = det;
+      } catch (e) {}
+      const e2 = new Error(d); e2.artifacts = artifacts; throw e2;
     }
     const reportBlob = await resp.blob();
     const zip = new JSZip();
@@ -705,6 +765,7 @@ async function confirmAndSave() {
   } catch (e) {
     const er = $("#g-report-error"); er.classList.remove("hidden");
     er.innerHTML = ""; er.append(el("strong", {}, "Report failed."), el("pre", {}, String(e.message || e)));
+    if (e.artifacts && (e.artifacts.tex || e.artifacts.log)) er.append(compileArtifactsButton(e.artifacts));
   } finally {
     $("#g-confirm").disabled = false;
     $("#g-report-status").classList.add("hidden");

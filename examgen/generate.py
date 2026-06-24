@@ -255,9 +255,19 @@ def generate_exams(
             pdf_path = os.path.join(job_dir, f"{jobname}.pdf")
             if result.returncode != 0 or not os.path.exists(pdf_path):
                 tail = (result.stdout or "")[-1500:]
-                raise GenerationError(
+                try:
+                    with open(os.path.join(job_dir, f"{jobname}.log"),
+                              "r", encoding="latin-1", errors="replace") as lf:
+                        log_text = lf.read()
+                except OSError:
+                    log_text = result.stdout or ""
+                err = GenerationError(
                     f"LaTeX failed for {jobname}. Check the question/template "
                     f"LaTeX. Compiler tail:\n{tail}")
+                err.tex = doc          # the exact source we tried to compile
+                err.log = log_text     # the pdflatex log
+                err.jobname = jobname
+                raise err
             pdfs.append((f"{jobname}.pdf", open(pdf_path, "rb").read()))
 
             # Drop this exam's intermediates to keep the job dir small.
