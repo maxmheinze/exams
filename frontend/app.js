@@ -237,6 +237,7 @@ function makeEditor(textarea, onChange) {
     extraKeys: { Tab: (c) => c.replaceSelection("\t") },
   });
   if (onChange) cm.on("change", () => onChange(cm.getValue()));
+  setTimeout(() => cm.refresh(), 0);   // ensure correct layout once visible
   return cm;
 }
 
@@ -394,11 +395,11 @@ function fail(msg, detail, artifacts) {
 function init() {
   // landing
   $("#choice-generate").addEventListener("click", () => {
-    renderEditor(); renderAssets();
     const hasPool = state.pool.length > 0;
     $("#editor-intro").classList.toggle("hidden", hasPool);
     $("#editor-body").classList.toggle("hidden", !hasPool);
     show("editor");
+    renderEditor(); renderAssets();
   });
 
   // editor: upload / scratch
@@ -408,17 +409,17 @@ function init() {
       const data = JSON.parse(await f.text());
       if (!Array.isArray(data)) throw new Error("JSON must be an array of questions.");
       state.pool = normalizePool(data);
-      renderEditor();
       $("#editor-body").classList.remove("hidden");
       $("#editor-intro").classList.add("hidden");
+      renderEditor();
     } catch (err) { alert("Could not read JSON: " + err.message); }
     e.target.value = "";
   });
   $("#start-scratch").addEventListener("click", () => {
     state.pool = [];
-    renderEditor();
     $("#editor-body").classList.remove("hidden");
     $("#editor-intro").classList.add("hidden");
+    renderEditor();
   });
   $("#add-type").addEventListener("click", () => {
     const qt = nextType();
